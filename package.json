@@ -1,0 +1,20 @@
+{
+  "name": "ledgerlite",
+  "private": true,
+  "version": "1.0.0",
+  "description": "A lightweight personal finance dashboard for tracking spending, budgets and cash flow.",
+  "license": "MIT",
+  "author": "Waleed Ilyas",
+  "packageManager": "pnpm@12.8.1",
+  "scripts": {
+    "dev": "pnpm --parallel --filter ./server --filter ./client dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2"
+  }
+}

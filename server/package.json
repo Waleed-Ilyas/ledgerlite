@@ -1,0 +1,20 @@
+{
+  "name": "ledgerlite-server",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "build": "node --check src/server.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.1.0",
+    "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}
