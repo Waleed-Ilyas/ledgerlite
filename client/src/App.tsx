@@ -26,53 +26,178 @@ type Budget = {
   color: string;
 };
 
-const demoAccounts: Account[] = [
-  { id: 'acc-1', name: 'Primary Checking', type: 'checking', balance: 12840.32, currency: 'USD', color: '#7c9cff' },
-  { id: 'acc-2', name: 'Emergency Fund', type: 'savings', balance: 24500, currency: 'USD', color: '#3dd9b3' },
-  { id: 'acc-3', name: 'Travel Card', type: 'credit', balance: -682.4, currency: 'USD', color: '#ffb454' },
-];
 
-const demoTransactions: Transaction[] = [
-  { id: 'tx-1', title: 'Paycheck', category: 'Salary', type: 'income', amount: 4200, date: '2025-04-02', accountId: 'acc-1' },
-  { id: 'tx-2', title: 'Rent', category: 'Housing', type: 'expense', amount: 1825, date: '2025-04-03', accountId: 'acc-1' },
-  { id: 'tx-3', title: 'Groceries', category: 'Food', type: 'expense', amount: 284.12, date: '2025-04-05', accountId: 'acc-1' },
-  { id: 'tx-4', title: 'Freelance Client', category: 'Contract', type: 'income', amount: 960, date: '2025-04-08', accountId: 'acc-2' },
-  { id: 'tx-5', title: 'Flight Booking', category: 'Travel', type: 'expense', amount: 640, date: '2025-04-09', accountId: 'acc-3' },
-  { id: 'tx-6', title: 'Gym Membership', category: 'Health', type: 'expense', amount: 78.5, date: '2025-04-11', accountId: 'acc-1' },
-];
 
-const demoBudgets: Budget[] = [
-  { category: 'Housing', used: 1825, limit: 2200, color: '#7c9cff' },
-  { category: 'Food', used: 1184, limit: 1600, color: '#3dd9b3' },
-  { category: 'Travel', used: 640, limit: 900, color: '#ffb454' },
-  { category: 'Utilities', used: 402, limit: 550, color: '#f87171' },
-];
+
+
+
 
 const money = new Intl.NumberFormat('en-US', {
   style: 'currency',
   currency: 'USD',
 });
 
+
 export default function App() {
-  const [transactions, setTransactions] = useState<Transaction[]>(demoTransactions);
-  const [selectedAccount, setSelectedAccount] = useState<string>(demoAccounts[0].id);
+  const [token, setToken] = useState<string | null>(localStorage.getItem('token') || null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [summary, setSummary] = useState<any>({});
+  
+  const [selectedAccount, setSelectedAccount] = useState<string>('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  
+  const [loginEmail, setLoginEmail] = useState('');
   const [showNewEntry, setShowNewEntry] = useState(false);
-  const [form, setForm] = useState({
-    title: '',
-    category: 'Food',
-    type: 'expense' as 'income' | 'expense',
-    amount: '',
-    date: new Date().toISOString().slice(0, 10),
-  });
+  const [form, setForm] = useState<any>({ title: '', amount: '', type: 'expense', category: 'Food', accountId: '', date: '' });
+  const [loginPassword, setLoginPassword] = useState('');
+
+  const fetchDashboard = async (overrideToken?: string) => {
+    const activeToken = overrideToken || token;
+    if (!activeToken) return;
+    
+    setLoading(true);
+    try {
+      const res = await fetch('/api/dashboard', {
+        headers: { Authorization: `Bearer ${activeToken}` }
+      });
+      if (!res.ok) {
+        if (res.status === 401) handleLogout();
+        throw new Error('Failed to load dashboard');
+      }
+      const data = await res.json();
+      setTransactions(data.transactions || []);
+      setAccounts(data.accounts || []);
+      setBudgets(data.budgets || []);
+      setSummary(data.summary || {});
+      if (data.accounts?.length > 0 && !selectedAccount) {
+        setSelectedAccount(data.accounts[0].id);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setShowNewEntry(false);
-    }, 4000);
-    return () => window.clearTimeout(timer);
-  }, [showNewEntry]);
+    if (token) {
+      fetchDashboard();
+    }
+  }, [token]);
 
-  const activeAccounts = useMemo(() => demoAccounts, []);
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: loginEmail, password: loginPassword })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Login failed');
+      
+      localStorage.setItem('token', data.token);
+      setToken(data.token);
+      
+      setTransactions(data.dashboard.transactions || []);
+      setAccounts(data.dashboard.accounts || []);
+      setBudgets(data.dashboard.budgets || []);
+      setSummary(data.dashboard.summary || {});
+      if (data.dashboard.accounts?.length > 0) {
+        setSelectedAccount(data.dashboard.accounts[0].id);
+      }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setToken(null);
+  };
+
+  if (!token) {
+    
+  const handleAddTransaction = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const form = e.target as HTMLFormElement;
+    const data = new FormData(form);
+    
+    try {
+      const res = await fetch('/api/transactions', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          title: data.get('title'),
+          amount: Number(data.get('amount')),
+          type: data.get('type'),
+          category: data.get('category'),
+          accountId: data.get('accountId'),
+          date: data.get('date')
+        })
+      });
+      if (res.ok) {
+        form.reset();
+        fetchDashboard();
+      }
+    } catch(err) {
+      console.error(err);
+    }
+  };
+
+  return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="bg-white p-8 rounded-xl shadow-sm max-w-md w-full border border-slate-100">
+          <div className="text-center mb-8">
+            <div className="w-12 h-12 bg-indigo-600 text-white rounded-lg flex items-center justify-center mx-auto mb-4 text-xl font-bold">L</div>
+            <h1 className="text-2xl font-bold text-slate-900">LedgerLite</h1>
+            <p className="text-slate-500 mt-2">Sign in to your personal finance dashboard.</p>
+          </div>
+          {error && <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm">{error}</div>}
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+              <input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-600" required />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+              <input type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-600" required />
+            </div>
+            <button disabled={loading} className="w-full py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition disabled:opacity-50">
+              {loading ? 'Signing in...' : 'Sign In'}
+            </button>
+            <div className="text-sm text-center text-slate-500 pt-4">
+              <p>Demo Account: <br /><b>demo@waleed.dev</b> / <b>Demo@1234</b></p>
+            </div>
+          </form>
+          
+          <div className="mt-8 pt-6 border-t border-slate-100">
+            <div className="bg-slate-50 p-4 rounded-lg">
+              <h3 className="font-semibold text-slate-900 mb-2">About this project</h3>
+              <p className="text-sm text-slate-600 mb-3">A full-stack personal finance dashboard (Vite + Express). Features secure JWT auth, real-time balance calculations, and categorized spending history.</p>
+              <div className="flex gap-3 text-sm">
+                <a href="https://github.com/Waleed-Ilyas/ledgerlite" className="text-indigo-600 hover:underline">GitHub</a>
+                <a href="/work/ledgerlite" className="text-indigo-600 hover:underline">Case Study</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const activeAccounts = useMemo(() => accounts, [accounts]);
+
 
   const totalBalance = activeAccounts.reduce((sum, account) => sum + account.balance, 0);
   const monthlyIncome = transactions.filter((t) => t.type === 'income').reduce((sum, tx) => sum + tx.amount, 0);
@@ -182,7 +307,7 @@ export default function App() {
             <h2 style={styles.sectionTitle}>Budget snapshot</h2>
           </div>
           <div style={styles.budgetList}>
-            {demoBudgets.map((budget) => {
+            {budgets.map((budget) => {
               const pct = Math.min((budget.used / budget.limit) * 100, 100);
               return (
                 <div key={budget.category} style={styles.budgetItem}>

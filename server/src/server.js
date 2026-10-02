@@ -38,14 +38,29 @@ const budgets = [
   { category: 'Utilities', used: 402, limit: 550, color: '#f87171' },
 ];
 
-const transactions = [
-  { id: 'tx-1', title: 'Paycheck', category: 'Salary', type: 'income', amount: 4200, date: '2025-04-02', accountId: 'acc-checking' },
-  { id: 'tx-2', title: 'Rent', category: 'Housing', type: 'expense', amount: 1825, date: '2025-04-03', accountId: 'acc-checking' },
-  { id: 'tx-3', title: 'Groceries', category: 'Food', type: 'expense', amount: 284.12, date: '2025-04-05', accountId: 'acc-checking' },
-  { id: 'tx-4', title: 'Freelance Client', category: 'Contract', type: 'income', amount: 960, date: '2025-04-08', accountId: 'acc-savings' },
-  { id: 'tx-5', title: 'Flight Booking', category: 'Travel', type: 'expense', amount: 640, date: '2025-04-09', accountId: 'acc-credit' },
-  { id: 'tx-6', title: 'Gym Membership', category: 'Health', type: 'expense', amount: 78.5, date: '2025-04-11', accountId: 'acc-checking' },
-];
+
+const transactions = [];
+let txId = 1;
+const today = new Date();
+for(let m = 0; m < 6; m++) {
+  const monthDate = new Date(today.getFullYear(), today.getMonth() - m, 15);
+  // Salary
+  transactions.push({ id: 'tx-s-'+m, title: 'Paycheck', category: 'Salary', type: 'income', amount: 4200, date: new Date(monthDate.getFullYear(), monthDate.getMonth(), 2).toISOString().split('T')[0], accountId: 'acc-checking' });
+  // Rent
+  transactions.push({ id: 'tx-r-'+m, title: 'Rent', category: 'Housing', type: 'expense', amount: 1825, date: new Date(monthDate.getFullYear(), monthDate.getMonth(), 3).toISOString().split('T')[0], accountId: 'acc-checking' });
+  // Groceries (multiple)
+  transactions.push({ id: 'tx-g1-'+m, title: 'Groceries', category: 'Food', type: 'expense', amount: 284.12, date: new Date(monthDate.getFullYear(), monthDate.getMonth(), 5).toISOString().split('T')[0], accountId: 'acc-checking' });
+  transactions.push({ id: 'tx-g2-'+m, title: 'Groceries', category: 'Food', type: 'expense', amount: 156.40, date: new Date(monthDate.getFullYear(), monthDate.getMonth(), 15).toISOString().split('T')[0], accountId: 'acc-checking' });
+  // Utilities
+  transactions.push({ id: 'tx-u-'+m, title: 'Electricity', category: 'Utilities', type: 'expense', amount: 124.50, date: new Date(monthDate.getFullYear(), monthDate.getMonth(), 12).toISOString().split('T')[0], accountId: 'acc-checking' });
+  // Dining Out
+  transactions.push({ id: 'tx-d-'+m, title: 'Restaurant', category: 'Food', type: 'expense', amount: 85.00, date: new Date(monthDate.getFullYear(), monthDate.getMonth(), 20).toISOString().split('T')[0], accountId: 'acc-credit' });
+  // Freelance
+  if(m % 2 === 0) {
+    transactions.push({ id: 'tx-f-'+m, title: 'Freelance Client', category: 'Contract', type: 'income', amount: 960, date: new Date(monthDate.getFullYear(), monthDate.getMonth(), 8).toISOString().split('T')[0], accountId: 'acc-savings' });
+  }
+}
+
 
 function sanitizeUser(user) {
   return { id: user.id, name: user.name, email: user.email, role: user.role };

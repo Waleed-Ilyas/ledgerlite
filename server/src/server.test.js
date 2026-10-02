@@ -64,7 +64,7 @@ describe('LedgerLite server', () => {
         category: 'Food',
         type: 'expense',
         amount: 14.5,
-        date: '2025-04-13',
+        date: '2099-04-13',
         accountId: 'acc-checking',
       }),
     });
